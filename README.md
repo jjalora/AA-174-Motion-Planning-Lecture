@@ -13,7 +13,7 @@ The code in this repository is written in Python and requires the following libr
 ## Installation
 To install the required libraries, you can use `pip`. First, ensure that you have `pip` installed and then run the following command in your terminal:
 
-bash: ```pip install -r requirements.txt``
+bash: ``pip install -r requirements.txt``
 
 ## Running the code
 The main code for running the examples is located in ``motion_plan.py``. Uncomment the specific algorithm you want to run, then in your terminal
