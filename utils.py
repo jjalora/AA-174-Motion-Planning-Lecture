@@ -207,23 +207,21 @@ def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, e
             if frame < len(edges):
                 parent, child = edges[frame]
                 ax.plot([parent.point[0], child.point[0]], [parent.point[1], child.point[1]], 'k-', lw=0.5)
-            # Display path
-            else:
-                if len(path) > 1:
-                    ax.plot([p[0] for p in path], [p[1] for p in path], '-o', color='blue', lw=3, label='Path' if frame == len(edges) else "")
-                    if frame == len(edges):
-                        ax.legend()
+            # Always display path in frames after the tree is fully animated
+            if frame >= len(edges) and len(path) > 1:
+                ax.plot([p[0] for p in path], [p[1] for p in path], '-o', color='blue', lw=3, label='Path' if frame == len(edges) else "")
+                if frame == len(edges):
+                    ax.legend()
         elif V_near is not None:
             if frame < len(V_near):
                 node = V_near[frame]
                 if node.parent is not None:
                     ax.plot([node.point[0], node.parent.point[0]], [node.point[1], node.parent.point[1]], 'k-', lw=0.5)
-            # Display path
-            else:
-                if len(path) > 1:
-                    ax.plot([p[0] for p in path], [p[1] for p in path], '-o', lw=3, label='Path' if frame == len(V_near) else "")
-                    if frame == len(V_near):
-                        ax.legend()
+            # Always display path in frames after the tree is fully animated
+            if frame >= len(V_near) and len(path) > 1:
+                ax.plot([p[0] for p in path], [p[1] for p in path], '-o', lw=3, label='Path' if frame == len(V_near) else "")
+                if frame == len(V_near):
+                    ax.legend()
         else:
             raise Exception("Must provide either edges or V_near")
 

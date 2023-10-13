@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from algorithms import fmt_star, rrt_star, rrt, prm_star
-from utils import plot_results, animate_edges_and_path
+from utils import plot_results, animate_edges_and_path, animate_edges_and_path_HTML
 
 # Example 1: Two Boxes
 example = 1
