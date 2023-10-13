@@ -229,7 +229,7 @@ def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, e
     
     frame_length = len(edges) if edges is not None else len(V_near)
 
-    ani = animation.FuncAnimation(fig, update, frames=frame_length + 10, blit=False, repeat=False, interval=1)
+    ani = animation.FuncAnimation(fig, update, frames=frame_length + 10, blit=False, repeat=False, interval=100)
 
     plt.close(fig)  # Close the figure to prevent it from displaying in the output
     return HTML(ani.to_html5_video())
