@@ -4,6 +4,7 @@ import numpy as np
 from debug_utils import plot_samples_and_obstacles
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from IPython.display import HTML
 
 from os.path import join, dirname, abspath
 PATH = dirname(abspath(__file__))
@@ -179,3 +180,58 @@ def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=
     
     ax.grid(True)
     plt.show()
+
+def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1):
+    alg_titles = {'rrtstar': "RRT٭",
+                  'rrt': "RRT",
+                  'fmtstar': "FMT٭",
+                  'prmstar': "PRM٭"}
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.axis([0, 1, 0, 1])
+    
+    # Plot start and goal
+    ax.plot(start[0], start[1], 'go', markersize=10, label='Start')
+    goal_polygon = plt.Polygon(goal, edgecolor='g', facecolor=(0, 1, 0, 0.5), label='Goal')
+    ax.add_patch(goal_polygon)
+
+    # Plot obstacles
+    for obstacle in obstacles:
+        obstacle_rect = plt.Rectangle((obstacle[0], obstacle[1]), obstacle[2], obstacle[3], edgecolor='k', facecolor='gray')
+        ax.add_patch(obstacle_rect)
+    
+    def update(frame):
+        ax.set_title(f"{alg_titles[alg_label]} Algorithm. Cost = {cost}")
+        if edges is not None:
+            # Animate edges
+            if frame < len(edges):
+                parent, child = edges[frame]
+                ax.plot([parent.point[0], child.point[0]], [parent.point[1], child.point[1]], 'k-', lw=0.5)
+            # Display path
+            else:
+                if len(path) > 1:
+                    ax.plot([p[0] for p in path], [p[1] for p in path], '-o', color='blue', lw=3, label='Path' if frame == len(edges) else "")
+                    if frame == len(edges):
+                        ax.legend()
+        elif V_near is not None:
+            if frame < len(V_near):
+                node = V_near[frame]
+                if node.parent is not None:
+                    ax.plot([node.point[0], node.parent.point[0]], [node.point[1], node.parent.point[1]], 'k-', lw=0.5)
+            # Display path
+            else:
+                if len(path) > 1:
+                    ax.plot([p[0] for p in path], [p[1] for p in path], '-o', lw=3, label='Path' if frame == len(V_near) else "")
+                    if frame == len(V_near):
+                        ax.legend()
+        else:
+            raise Exception("Must provide either edges or V_near")
+
+        return ax
+    
+    frame_length = len(edges) if edges is not None else len(V_near)
+
+    ani = animation.FuncAnimation(fig, update, frames=frame_length + 10, blit=False, repeat=False, interval=1)
+
+    plt.close(fig)  # Close the figure to prevent it from displaying in the output
+    return HTML(ani.to_html5_video())
