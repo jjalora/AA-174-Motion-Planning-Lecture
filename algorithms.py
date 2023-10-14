@@ -6,7 +6,7 @@ from utils import is_point_inside_obstacle, distance, nearest_neighbors, \
 from scipy.spatial import distance_matrix
 from debug_utils import plot_samples_and_obstacles
 
-def fmt_star(start, goal, obstacles, Nmax, eta):
+def fmt_star(start, goal, obstacles, Nmax, eta, seed=None):
     """
     Compute a path from a start point to a goal region, avoiding obstacles, using the FMT* algorithm.
 
@@ -32,6 +32,10 @@ def fmt_star(start, goal, obstacles, Nmax, eta):
     start_node = Node(start)
     goal_node = Node(goal)
     start_node.cost = 0
+
+    # Seed the random number generator
+    if seed is not None:
+        np.random.seed(seed)
     
     # Filter samples to remove those inside obstacles
     rand_samples = [(np.random.uniform(0, 1), np.random.uniform(0, 1)) for _ in range(Nmax)]
@@ -82,7 +86,7 @@ def fmt_star(start, goal, obstacles, Nmax, eta):
         z = np.where(H)[0][np.argmin(C[H])]
     
         iters += 1
-        print(f"== FMT★ ==Iteration: {iters}, Nodes in Tree: {np.sum(H)}, Unvisited Nodes: {np.sum(W)}")
+        # print(f"== FMT★ ==Iteration: {iters}, Nodes in Tree: {np.sum(H)}, Unvisited Nodes: {np.sum(W)}")
     
     # Reconstruct path
     path = []
@@ -97,7 +101,7 @@ def fmt_star(start, goal, obstacles, Nmax, eta):
 
     return round(total_cost, 3), path, edges, 'fmtstar'
 
-def rrt_star(start, goal, obstacles, Nmax, eta):
+def rrt_star(start, goal, obstacles, Nmax, eta, seed=None):
     """
     Compute a path from a start point to a goal region, avoiding obstacles, using the RRT* algorithm.
 
@@ -122,11 +126,16 @@ def rrt_star(start, goal, obstacles, Nmax, eta):
     """
     start_node = Node(start)
     start_node.cost = 0
+
+    # Seed the random number generator
+    if seed is not None:
+        np.random.seed(seed)
     
     V = [start_node]
     A = [None] * Nmax
     C = [float('inf')] * Nmax
     C[0] = 0
+    
     
     mu = 1
     for obstacle in obstacles:
@@ -166,6 +175,11 @@ def rrt_star(start, goal, obstacles, Nmax, eta):
     # Construct path
     goal_polygon = Polygon(goal)
     goal_pts = [i for i, v in enumerate(V) if goal_polygon.contains(Point(v.point))]
+
+    # Check if any points are within the goal region
+    if not goal_pts:
+        return float('inf'), [], V, 'rrtstar'
+
     goal_costs = [C[i] for i in goal_pts]
     min_cost_idx = goal_pts[np.argmin(goal_costs)]
 
@@ -182,7 +196,7 @@ def rrt_star(start, goal, obstacles, Nmax, eta):
 
     return round(total_cost, 3), path, V, 'rrtstar'
 
-def rrt(start, goal, obstacles, Nmax, eta):
+def rrt(start, goal, obstacles, Nmax, eta, seed=None):
     """
     Compute a path from a start point to a goal region, avoiding obstacles, using the RRT algorithm.
 
@@ -194,12 +208,17 @@ def rrt(start, goal, obstacles, Nmax, eta):
     - eta (float): A parameter to determine the maximum step size during the extension of the tree.
 
     Returns:
+    - cost (float): The cost of the found path.
     - path (list): A list of tuples [(x1, y1), (x2, y2), ...], representing the found path from start to goal.
     - V (list): A list of Node objects, representing all nodes in the tree.
     """
     start_node = Node(start)
     V = [start_node]  # List of nodes
     goal_polygon = Polygon(goal)
+
+    # Seed the random number generator
+    if seed is not None:
+        np.random.seed(seed)
     
     for k in range(Nmax):
         q = np.random.rand(2)
@@ -214,6 +233,10 @@ def rrt(start, goal, obstacles, Nmax, eta):
             if goal_polygon.contains(Point(q_new.point)):
                 break
     
+    # Check if path reaches the goal
+    if not goal_polygon.contains(Point(V[-1].point)):
+        return float('inf'), [], V, 'rrt'
+    
     # Reconstruct path
     path = []
     cost = 0
@@ -227,9 +250,13 @@ def rrt(start, goal, obstacles, Nmax, eta):
     
     return round(cost, 3), path, V, 'rrt'
 
-def prm_star(start, goal, obstacles, Nmax, eta):
+def prm_star(start, goal, obstacles, Nmax, eta, seed=None):
     start_node = Node(start)
     start_node.cost = 0
+
+    # Seed the random number generator
+    if seed is not None:
+        np.random.seed(seed)
     
     rand_samples = [(np.random.uniform(0, 1), np.random.uniform(0, 1)) for _ in range(Nmax)]
     collision_free_samples = [sample for sample in rand_samples if not is_point_inside_obstacle(sample, obstacles)]
@@ -267,7 +294,7 @@ def prm_star(start, goal, obstacles, Nmax, eta):
     goal_nodes = [v for v in V if goal_polygon.contains(Point(v.point))]
     
     if not goal_nodes:
-        return [], edges  # No path found
+        return float('inf'), [], V, 'prmstar'
     
     goal_node = min(goal_nodes, key=lambda v: v.cost)
     

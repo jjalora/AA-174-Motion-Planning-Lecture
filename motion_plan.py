@@ -1,15 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from algorithms import fmt_star, rrt_star, rrt, prm_star
-from utils import plot_results, animate_edges_and_path, animate_edges_and_path_HTML
+from utils import plot_results, animate_edges_and_path
 
 # Example 1: Two Boxes
 example = 1
 start = (0, 0)
 # Define obstacles as polygons
 obstacles = [
-    (0.1, 0.1, 0.3, 0.3),
-    (0.4, 0.6, 0.5, 0.3)
+    (0.1, 0.1, 0.1, 0.1),
+    (0.6, 0.6, 0.2, 0.2)
 ]
 # Define goal as a polygon
 goal = [(0.9, 0.9), (1, 0.9), (1, 1), (0.9, 1)]
@@ -37,25 +37,25 @@ goal = [(0.9, 0.9), (1, 0.9), (1, 1), (0.9, 1)]
 
 # Initialize
 edges, V_near = None, None
-k = 1000
-# k = 1800 # for example 2
+k = 50 # 50
+seed = 962 #899, 904, 962
 
 # FMTstar Implementation
-# eta = 1.5
-# cost, path, edges, label = fmt_star(start, goal, obstacles, k, eta)
+eta = 1.5
+cost, path, edges, label = fmt_star(start, goal, obstacles, k, eta, seed=seed)
 
 # RRTstar and RRT Implementation
 # eta = 0.1
-# cost, path, V_near, label = rrt(start, goal, obstacles, k, eta)
-# cost, path, V_near, label = rrt_star(start, goal, obstacles, k, eta)
+# cost, path, V_near, label = rrt(start, goal, obstacles, k, eta, seed=seed)
+# cost, path, V_near, label = rrt_star(start, goal, obstacles, k, eta, seed=seed)
 
 # PRM star Implementation
 # For Example 1
-eta = 2.5
+# eta = 5.5
 # For example 2
 # eta = 3.0
 
-cost, path, edges, label = prm_star(start, goal, obstacles, k, eta)
+# cost, path, edges, label = prm_star(start, goal, obstacles, k, eta, seed=seed)
 
 
 # Animate and plot results
