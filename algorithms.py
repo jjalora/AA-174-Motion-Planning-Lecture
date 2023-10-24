@@ -5,6 +5,9 @@ from utils import is_point_inside_obstacle, distance, nearest_neighbors, \
     nearest_neighbor, is_collision_free, Node
 from scipy.spatial import distance_matrix
 from debug_utils import plot_samples_and_obstacles
+from matplotlib.animation import FuncAnimation
+import matplotlib.patches as patches
+import heapq
 
 def fmt_star(start, goal, obstacles, Nmax, eta, seed=None):
     """
@@ -130,71 +133,93 @@ def rrt_star(start, goal, obstacles, Nmax, eta, seed=None):
     # Seed the random number generator
     if seed is not None:
         np.random.seed(seed)
-    
+
     V = [start_node]
     A = [None] * Nmax
     C = [float('inf')] * Nmax
     C[0] = 0
-    
-    
+    R = [(np.random.uniform(0, 1), np.random.uniform(0, 1)) for _ in range(Nmax)]
+
+    rewired_edges = []
+    added_edges = []
+
     mu = 1
     for obstacle in obstacles:
-        # Assuming obstacle format: (x, y, width, height)
         mu -= obstacle[2] * obstacle[3]
-    
+
     r = lambda N: min(1.1*np.sqrt(3*mu/np.pi*np.log(N)/N), eta)
-    
+
     for k in range(Nmax):
-        q = tuple(np.random.rand(2))
+        q = R[k]
         q_nrst, nrst_idx = nearest_neighbor(V, q)
         q_new = tuple(np.array(q_nrst.point) + min(eta/np.linalg.norm(np.array(q)-np.array(q_nrst.point)), 1)*(np.array(q)-np.array(q_nrst.point)))
-        
+
         if is_collision_free(q_new, q_nrst.point, obstacles):
-            near_idx = nearest_neighbors(V, q_new, r(len(V)))
+            near_nodes = nearest_neighbors(V, q_new, r(len(V)))
             N = len(V)
             V.append(Node(q_new))
             min_idx = nrst_idx
-            min_c = C[nrst_idx] + np.linalg.norm(np.array(q_new)-np.array(q_nrst.point))
+            min_c = C[nrst_idx] + np.linalg.norm(np.array(q_new) - np.array(q_nrst.point))
             
-            for near_node in near_idx:
-                if C[V.index(near_node)] + np.linalg.norm(np.array(q_new)-np.array(near_node.point)) < min_c and \
-                   is_collision_free(q_new, near_node.point, obstacles):
-                    min_idx = V.index(near_node)
-                    min_c = C[V.index(near_node)] + np.linalg.norm(np.array(q_new)-np.array(near_node.point))
-            
+            near_norms = [np.linalg.norm(np.array(node.point) - np.array(q_new)) for node in near_nodes]
+            sorted_costs = sorted([(cost + C[V.index(node)], i) for i, (node, cost) in enumerate(zip(near_nodes, near_norms))], key=lambda x: x[0])
+
+            for cost, i in sorted_costs:
+                if cost >= min_c:
+                    break
+                if is_collision_free(q_new, near_nodes[i].point, obstacles):
+                    min_idx = V.index(near_nodes[i])
+                    min_c = cost
+                    break
+
             A[N] = min_idx
             C[N] = min_c
-            V[N].parent = V[min_idx]  # Set parent
-            
-            for near_node in near_idx:
-                if C[N] + np.linalg.norm(np.array(q_new)-np.array(near_node.point)) < C[V.index(near_node)] and \
-                   is_collision_free(q_new, near_node.point, obstacles):
+            V[N].parent = V[min_idx]
+            added_edges.append((V[min_idx].point, V[N].point))
+
+            near_norms = [np.linalg.norm(np.array(node.point) - np.array(q_new)) for node in near_nodes]
+            rewire_nodes = [near_nodes[i] for i, dist in enumerate(near_norms) if C[N] + dist < C[V.index(near_nodes[i])]]
+
+            for near_node in rewire_nodes:
+                dist = np.linalg.norm(np.array(q_new) - np.array(near_node.point))
+                if is_collision_free(q_new, near_node.point, obstacles):
+                    if near_node.parent:  
+                        rewired_edges.append((tuple(near_node.parent.point), tuple(near_node.point)))
                     A[V.index(near_node)] = N
-                    C[V.index(near_node)] = C[N] + np.linalg.norm(np.array(q_new)-np.array(near_node.point))
-    
+                    c_delta = C[N] + dist - C[V.index(near_node)]
+                    C[V.index(near_node)] += c_delta
+                    added_edges.append((tuple(V[N].point), tuple(near_node.point)))
+
+                    descendants_to_process = [V.index(near_node)]
+                    while descendants_to_process:
+                        current_node_idx = descendants_to_process.pop()
+                        children_indices = [V.index(child) for child in V if A[V.index(child)] == current_node_idx]
+                        descendants_to_process.extend(children_indices)
+
+                        for child_idx in children_indices:
+                            C[child_idx] += c_delta
+
     # Construct path
     goal_polygon = Polygon(goal)
     goal_pts = [i for i, v in enumerate(V) if goal_polygon.contains(Point(v.point))]
 
-    # Check if any points are within the goal region
     if not goal_pts:
-        return float('inf'), [], V, 'rrtstar'
+        return float('inf'), [], V, A, added_edges, rewired_edges, 'rrtstar'
 
     goal_costs = [C[i] for i in goal_pts]
     min_cost_idx = goal_pts[np.argmin(goal_costs)]
 
     path = []
-    total_cost = 0  # Initialize total_cost
-    current_idx = min_cost_idx  # Start from the goal node
+    total_cost = 0
+    current_idx = min_cost_idx
     while A[current_idx] is not None:
         path.append(V[current_idx].point)
-        # Add the cost from the current node to its parent to total_cost
         total_cost += np.linalg.norm(np.array(V[current_idx].point) - np.array(V[A[current_idx]].point))
         current_idx = A[current_idx]
     path.append(start)
     path.reverse()
 
-    return round(total_cost, 3), path, V, 'rrtstar'
+    return round(total_cost, 3), path, V, A, added_edges, rewired_edges, 'rrtstar'
 
 def rrt(start, goal, obstacles, Nmax, eta, seed=None):
     """
@@ -251,59 +276,65 @@ def rrt(start, goal, obstacles, Nmax, eta, seed=None):
     return round(cost, 3), path, V, 'rrt'
 
 def prm_star(start, goal, obstacles, Nmax, eta, seed=None):
-    start_node = Node(start)
-    start_node.cost = 0
-
-    # Seed the random number generator
     if seed is not None:
         np.random.seed(seed)
+
+    start_node = Node(start)
+    start_node.cost = 0
+    V = [start_node]  # Initialize with the start node
     
-    rand_samples = [(np.random.uniform(0, 1), np.random.uniform(0, 1)) for _ in range(Nmax)]
-    collision_free_samples = [sample for sample in rand_samples if not is_point_inside_obstacle(sample, obstacles)]
+    # Sample and add to V
+    for _ in range(Nmax):
+        rand_point = (np.random.uniform(0, 1), np.random.uniform(0, 1))
+        if not is_point_inside_obstacle(rand_point, obstacles):
+            V.append(Node(rand_point))
     
-    V = [start_node] + [Node(sample) for sample in collision_free_samples]
     N = len(V)
-    
-    mu = 1  # Assuming a 1x1 unit square
+    mu = 1
     for obstacle in obstacles:
         mu -= obstacle[2] * obstacle[3]
-    
+
     r = eta * np.sqrt(2 * mu / np.pi * np.log(N) / N)
-    
     points = np.array([v.point for v in V])
     D = distance_matrix(points, points)
     
-    edges = []  # Store edges as they are created
-
+    # Create adjacency list for the graph
+    adj_list = {v: [] for v in V}
+    
     for i, v in enumerate(V):
-        v_neighbors = [u for j, u in enumerate(V) if D[i, j] < r and i != j and is_collision_free(v.point, u.point, obstacles)]
+        v_neighbors = [V[j] for j in range(i+1, N) if D[i, j] < r and is_collision_free(v.point, V[j].point, obstacles)]
         for u in v_neighbors:
-            if v.cost + distance(v.point, u.point) < u.cost:
-                u.parent = v
-                u.cost = v.cost + distance(v.point, u.point)
-                edges.append((v, u))  # Store the edge
+            adj_list[v].append((u, D[i, V.index(u)]))
+            adj_list[u].append((v, D[V.index(u), i]))  # Because the graph is undirected
     
-    start_neighbors = [u for j, u in enumerate(V) if D[0, j] < r and is_collision_free(start, u.point, obstacles)]
-    for u in start_neighbors:
-        if start_node.cost + distance(start, u.point) < u.cost:
-            u.parent = start_node
-            u.cost = start_node.cost + distance(start, u.point)
-            edges.append((start_node, u))  # Store the edge
+    # Dijkstra's algorithm
+    visited = set()
+    pq = [(0, start_node)]
+    while pq:
+        current_cost, current_node = heapq.heappop(pq)
+        if current_node in visited:
+            continue
+        
+        visited.add(current_node)
+        
+        for neighbor, edge_cost in adj_list[current_node]:
+            if neighbor not in visited:
+                new_cost = current_cost + edge_cost
+                if new_cost < neighbor.cost:
+                    neighbor.cost = new_cost
+                    neighbor.parent = current_node
+                    heapq.heappush(pq, (new_cost, neighbor))
     
-    goal_polygon = Polygon(goal)
-    goal_nodes = [v for v in V if goal_polygon.contains(Point(v.point))]
-    
+    goal_nodes = [v for v in V if Polygon(goal).contains(Point(v.point))]
     if not goal_nodes:
-        return float('inf'), [], V, 'prmstar'
+        return float('inf'), [], [(k, v[0]) for k, values in adj_list.items() for v in values], V, 'prmstar'
     
     goal_node = min(goal_nodes, key=lambda v: v.cost)
-    
     path = []
     current = goal_node
-    while current.parent is not None:
+    while current:
         path.append(current.point)
         current = current.parent
-    path.append(start)
     path.reverse()
     
-    return round(goal_node.cost, 3), path, edges, 'prmstar'
+    return round(goal_node.cost, 3), path, [(k, v[0]) for k, values in adj_list.items() for v in values], V, 'prmstar'

@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from algorithms import fmt_star, rrt_star, rrt, prm_star
-from utils import plot_results, animate_edges_and_path
+from utils import plot_results, animate_edges_and_path, generateValidationSamples, \
+    animate_rrt_star, visualize_prm_star
 
 # Example 1: Two Boxes
 example = 1
@@ -37,32 +38,41 @@ goal = [(0.9, 0.9), (1, 0.9), (1, 1), (0.9, 1)]
 
 # Initialize
 edges, V_near = None, None
-k = 50 # 50
+k = 500 # 50
 seed = 962 #899, 904, 962
 
+# Generate validation samples to check with MATLAB
+pathToMatlab = "/Users/jalora/Desktop/AA-203-MP-Lecture"
+generateValidationSamples(obstacles, k, seed, path=pathToMatlab)
+
 # FMTstar Implementation
-eta = 1.5
-cost, path, edges, label = fmt_star(start, goal, obstacles, k, eta, seed=seed)
+# eta = 1.5
+# cost, path, edges, label = fmt_star(start, goal, obstacles, k, eta, seed=seed)
 
 # RRTstar and RRT Implementation
 # eta = 0.1
 # cost, path, V_near, label = rrt(start, goal, obstacles, k, eta, seed=seed)
-# cost, path, V_near, label = rrt_star(start, goal, obstacles, k, eta, seed=seed)
+
+# eta = 0.3
+# cost, path, V, A, added_edges, rewired_edges, label = rrt_star(start, goal, obstacles, k, eta, seed=seed)
 
 # PRM star Implementation
 # For Example 1
-# eta = 5.5
+eta = 1.5
 # For example 2
 # eta = 3.0
 
-# cost, path, edges, label = prm_star(start, goal, obstacles, k, eta, seed=seed)
+cost, path, edges, V, label = prm_star(start, goal, obstacles, k, eta, seed=seed)
 
 
 # Animate and plot results
 params = {'k': k, 'eta': eta}
 if label == "fmtstar":
     animate_edges_and_path(start, obstacles, goal, path, label, cost, edges=edges, params=params, example=example)
+elif label =="rrtstar":
+    params = {'V': V, 'A': A, 'added_edges': added_edges, 'rewired_edges': rewired_edges}
+    animate_rrt_star(start, goal, obstacles, path, cost, params)
 elif label == "prmstar":
-    plot_results(start, obstacles, goal, path, label, cost, edges=edges, params=params, example=example)
+    visualize_prm_star(start, goal, obstacles, path, edges, cost, V)
 else:
     animate_edges_and_path(start, obstacles, goal, path, label, cost, V_near=V_near, params=params, example=example)
