@@ -122,7 +122,7 @@ def rectangle_to_polygon_coords(rect):
     x, y, w, h = rect
     return [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
 
-def plot_results(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1):
+def plot_results(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1, static_nodes=False):
     alg_titles = {'rrtstar': "RRT٭",
                   'rrt': "RRT",
                   'fmtstar': "FMT٭",
@@ -140,11 +140,14 @@ def plot_results(start, obstacles, goal, path, alg_label, cost, edges=None, V_ne
     for obstacle in obstacles:
         obstacle_rect = plt.Rectangle((obstacle[0], obstacle[1]), obstacle[2], obstacle[3], edgecolor='k', facecolor='gray')
         plt.gca().add_patch(obstacle_rect)
+    
+    if static_nodes:
+        plt.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', s=10)
 
     # Plotting the path
     if len(path) > 1:
         plt.plot([p[0] for p in path], [p[1] for p in path], '-o', label='Path', lw=3, zorder=int(10**4))
-
+    
     # Plotting the entire tree
     if V_near is not None:
         for node in V_near:
@@ -198,8 +201,7 @@ def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=
         ax.set_title(f"{alg_titles[alg_label]} Algorithm. Cost = {cost}")
         if edges is not None:
             if static_nodes:
-                ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', 
-                            s=10, label='Sampled Points' if frame == 0 else "")
+                ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', s=10)
             # Animate edges
             if frame < len(edges):
                 parent, child = edges[frame]
@@ -267,8 +269,7 @@ def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, e
     def update(frame):
         ax.set_title(f"{alg_titles[alg_label]} Algorithm. Cost = {cost}")
         if static_nodes:
-            ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', 
-                        s=10, label='Sampled Points' if frame == 0 else "")
+            ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', s=10)
         if edges is not None:
             # Animate edges
             if frame < len(edges):
