@@ -175,7 +175,7 @@ def plot_results(start, obstacles, goal, path, alg_label, cost, edges=None, V_ne
     
     plt.show()
 
-def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1):
+def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1, static_nodes=False):
     alg_titles = {'rrtstar': "RRT٭",
                   'rrt': "RRT",
                   'fmtstar': "FMT٭",
@@ -197,6 +197,9 @@ def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=
     def update(frame):
         ax.set_title(f"{alg_titles[alg_label]} Algorithm. Cost = {cost}")
         if edges is not None:
+            if static_nodes:
+                ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', 
+                            s=10, label='Sampled Points' if frame == 0 else "")
             # Animate edges
             if frame < len(edges):
                 parent, child = edges[frame]
@@ -242,7 +245,7 @@ def animate_edges_and_path(start, obstacles, goal, path, alg_label, cost, edges=
     ax.grid(False)
     plt.show()
 
-def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1):
+def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, edges=None, V_near=None, params=None, example=1, static_nodes=False):
     alg_titles = {'rrtstar': "RRT٭",
                   'rrt': "RRT",
                   'fmtstar': "FMT٭",
@@ -263,6 +266,9 @@ def animate_edges_and_path_HTML(start, obstacles, goal, path, alg_label, cost, e
     
     def update(frame):
         ax.set_title(f"{alg_titles[alg_label]} Algorithm. Cost = {cost}")
+        if static_nodes:
+            ax.scatter([node.point[0] for node in V_near], [node.point[1] for node in V_near], facecolors='none', edgecolors='black', 
+                        s=10, label='Sampled Points' if frame == 0 else "")
         if edges is not None:
             # Animate edges
             if frame < len(edges):

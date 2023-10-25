@@ -102,7 +102,7 @@ def fmt_star(start, goal, obstacles, Nmax, eta, seed=None):
     path.append(start)
     path.reverse()
 
-    return round(total_cost, 3), path, edges, 'fmtstar'
+    return round(total_cost, 3), path, edges, V, 'fmtstar'
 
 def rrt_star(start, goal, obstacles, Nmax, eta, seed=None):
     """

@@ -46,8 +46,8 @@ pathToMatlab = "/Users/jalora/Desktop/AA-203-MP-Lecture"
 generateValidationSamples(obstacles, k, seed, path=pathToMatlab)
 
 # FMTstar Implementation
-# eta = 1.5
-# cost, path, edges, label = fmt_star(start, goal, obstacles, k, eta, seed=seed)
+eta = 1.5
+cost, path, edges, V_near, label = fmt_star(start, goal, obstacles, k, eta, seed=seed)
 
 # RRTstar and RRT Implementation
 # eta = 0.1
@@ -58,17 +58,17 @@ generateValidationSamples(obstacles, k, seed, path=pathToMatlab)
 
 # PRM star Implementation
 # For Example 1
-eta = 1.5
+# eta = 1.5
 # For example 2
 # eta = 3.0
 
-cost, path, edges, V, label = prm_star(start, goal, obstacles, k, eta, seed=seed)
+# cost, path, edges, V, label = prm_star(start, goal, obstacles, k, eta, seed=seed)
 
 
 # Animate and plot results
 params = {'k': k, 'eta': eta}
 if label == "fmtstar":
-    animate_edges_and_path(start, obstacles, goal, path, label, cost, edges=edges, params=params, example=example)
+    animate_edges_and_path(start, obstacles, goal, path, label, cost, edges=edges, V_near=V_near, params=params, example=example, static_nodes=True)
 elif label =="rrtstar":
     params = {'V': V, 'A': A, 'added_edges': added_edges, 'rewired_edges': rewired_edges}
     animate_rrt_star(start, goal, obstacles, path, cost, params)
